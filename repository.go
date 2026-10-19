@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -19,8 +20,8 @@ CREATE TABLE IF NOT EXISTS Tasks (
 const schemaUsers = `
 CREATE TABLE IF NOT EXISTS Users (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    name     TEXT NOT NULL,
-    email    TEXT NOT NULL,
+    name     TEXT NOT NULL UNIQUE,
+    email    TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL
 );`
 
@@ -139,4 +140,26 @@ func deleting(db *sql.DB, id int) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func createUser(db *sql.DB, name, email, passHash string) (int64, error) {
+	res, err := db.Exec("INSERT INTO Users (name, email, password) VALUES (?, ?, ?)",
+		name, email, passHash,
+	)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return 0, ErrUserExists
+		}
+		return 0, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		log.Println(err)
+		return 0, err
+	}
+
+	log.Println(id, "User was registrated succesfuly")
+	return id, nil
 }

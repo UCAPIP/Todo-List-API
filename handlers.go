@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
@@ -151,4 +153,48 @@ func (app *App) deleteTaskById(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal error", "")
 		return
 	}
+}
+
+type Credentials struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (app *App) userRegister(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var c Credentials
+	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid JSON body", "")
+		return
+	}
+
+	c.Name = strings.TrimSpace(c.Name)
+	c.Email = strings.TrimSpace(c.Email)
+	if c.Email == "" || c.Name == "" || len(c.Password) < 8 || len(c.Password) > 72 {
+		writeError(w, http.StatusBadRequest, "Validation failed",
+			"Name is required; email is required ; password must be 8-72 characters")
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(c.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "Internal error", "")
+		return
+	}
+
+	id, err := createUser(app.db, c.Name, c.Email, string(hash))
+	if errors.Is(err, ErrUserExists) {
+		writeError(w, http.StatusConflict, "Name or Email already taken", "")
+		return
+	}
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "internal error", "")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]any{"id": id, "username": c.Name, "email": c.Email})
 }

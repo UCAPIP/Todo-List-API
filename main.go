@@ -4,12 +4,14 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 
 	_ "modernc.org/sqlite"
 )
 
 type App struct {
-	db *sql.DB
+	db        *sql.DB
+	jwtSecret []byte
 }
 
 func main() {
@@ -28,7 +30,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app := &App{db: db}
+	secret := os.Getenv("JWT_SECRET")
+	if len(secret) < 32 {
+		log.Fatal("JWT_SECRET must be set and at least 32 characters long")
+	}
+	app := &App{db: db, jwtSecret: []byte(secret)}
+
+	http.HandleFunc("POST /register", app.userRegister)
 
 	http.HandleFunc("GET /tasks", app.getTasks)
 	http.HandleFunc("GET /tasks/{id}", app.getTaskById)

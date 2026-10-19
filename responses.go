@@ -7,7 +7,10 @@ import (
 	"net/http"
 )
 
-var ErrNotFound = errors.New("Post not found")
+var (
+	ErrNotFound   = errors.New("Post not found")
+	ErrUserExists = errors.New("Name or email already taken")
+)
 
 type ErrorResponse struct {
 	Error   string `json:"error"`
