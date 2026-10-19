@@ -24,6 +24,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := initDB(db); err != nil {
+		log.Fatal(err)
+	}
+
 	app := &App{db: db}
 
 	http.HandleFunc("GET /tasks", app.getTasks)
