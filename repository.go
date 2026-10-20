@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS Tasks (
     title       TEXT NOT NULL,
     description TEXT NOT NULL,
     created_at  TEXT NOT NULL,
-    updated_at  TEXT NOT NULL
+    updated_at  TEXT NOT NULL,
+	user_id     INTEGER
 );`
 
 const schemaUsers = `
@@ -37,6 +38,7 @@ type Task struct {
 	Description string `json:"description"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
+	UserId      int    `json:"userId"`
 }
 
 type User struct {
@@ -46,13 +48,13 @@ type User struct {
 	PasswordHash string `json:"password"`
 }
 
-func loading(db *sql.DB) ([]Task, error) {
+func loading(db *sql.DB, userId int) ([]Task, error) {
 
 	tasks := []Task{}
 
-	query := "SELECT id, title, description, created_at, updated_at FROM Tasks"
+	query := "SELECT id, title, description, created_at, updated_at, user_id FROM Tasks WHERE user_id = ? ORDER BY id"
 
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +62,7 @@ func loading(db *sql.DB) ([]Task, error) {
 
 	for rows.Next() {
 		var t Task
-		if err := rows.Scan(&t.Id, &t.Title, &t.Description, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.Id, &t.Title, &t.Description, &t.CreatedAt, &t.UpdatedAt, &t.UserId); err != nil {
 			return tasks, err
 		}
 		tasks = append(tasks, t)
@@ -73,13 +75,13 @@ func loading(db *sql.DB) ([]Task, error) {
 	return tasks, nil
 }
 
-func finding(db *sql.DB, id int) (*Task, error) {
+func finding(db *sql.DB, taskId, userId int) (*Task, error) {
 	var t Task
 
 	err := db.QueryRow(
-		"SELECT id, title, description, created_at, updated_at FROM Tasks WHERE id = ?",
-		id,
-	).Scan(&t.Id, &t.Title, &t.Description, &t.CreatedAt, &t.UpdatedAt)
+		"SELECT id, title, description, created_at, updated_at, user_id FROM Tasks WHERE id = ? AND user_id = ?",
+		taskId, userId,
+	).Scan(&t.Id, &t.Title, &t.Description, &t.CreatedAt, &t.UpdatedAt, &t.UserId)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -90,12 +92,12 @@ func finding(db *sql.DB, id int) (*Task, error) {
 	return &t, nil
 }
 
-func adding(db *sql.DB, input *TaskInput) (int64, error) {
+func adding(db *sql.DB, input *TaskInput, userId int) (int64, error) {
 
 	now := time.Now().Format(time.RFC3339)
 
-	res, err := db.Exec("INSERT INTO Tasks (title, description, created_at, updated_at) VALUES (?, ?, ?, ?)",
-		input.Title, input.Description, now, now,
+	res, err := db.Exec("INSERT INTO Tasks (title, description, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?)",
+		input.Title, input.Description, now, now, userId,
 	)
 
 	if err != nil {
@@ -113,11 +115,11 @@ func adding(db *sql.DB, input *TaskInput) (int64, error) {
 
 }
 
-func editing(db *sql.DB, input *TaskInput, id int) error {
+func editing(db *sql.DB, input *TaskInput, id, userId int) error {
 	now := time.Now().Format(time.RFC3339)
 
-	res, err := db.Exec("UPDATE Tasks SET title = ?, description = ?, updated_at = ? WHERE id = ?",
-		input.Title, input.Description, now, id,
+	res, err := db.Exec("UPDATE Tasks SET title = ?, description = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+		input.Title, input.Description, now, id, userId,
 	)
 	if err != nil {
 		return err
@@ -133,8 +135,8 @@ func editing(db *sql.DB, input *TaskInput, id int) error {
 	return nil
 }
 
-func deleting(db *sql.DB, id int) error {
-	res, err := db.Exec("DELETE FROM Tasks WHERE id = ?", id)
+func deleting(db *sql.DB, id, userId int) error {
+	res, err := db.Exec("DELETE FROM Tasks WHERE id = ? AND user_id = ?", id, userId)
 	if err != nil {
 		return err
 	}

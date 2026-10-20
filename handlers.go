@@ -12,7 +12,13 @@ import (
 )
 
 func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
-	tasks, err := loading(app.db)
+	userId, ok := userIDFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
+		return
+	}
+
+	tasks, err := loading(app.db, userId)
 	if err != nil {
 		log.Printf("ERROR: Unable to load tasks from DB: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error", "Unable to load data.")
@@ -23,14 +29,20 @@ func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) getTaskById(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
+	taskIdStr := r.PathValue("id")
+	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
 	}
 
-	targetTask, err := finding(app.db, id)
+	userId, ok := userIDFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
+		return
+	}
+
+	targetTask, err := finding(app.db, taskId, userId)
 	if errors.Is(err, ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Task not found", "")
 		return
@@ -76,14 +88,20 @@ func (app *App) postNewTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := adding(app.db, &input)
+	userId, ok := userIDFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
+		return
+	}
+
+	taskId, err := adding(app.db, &input, userId)
 	if err != nil {
 		log.Println(err)
 		writeError(w, http.StatusInternalServerError, "Internal server error", "An unexpected error occurred on the server. Please try again later.")
 		return
 	}
 
-	newTask, err := finding(app.db, int(id))
+	newTask, err := finding(app.db, int(taskId), userId)
 	if err != nil {
 		log.Println(err)
 		writeError(w, http.StatusInternalServerError, "Internal server error", "")
@@ -94,8 +112,8 @@ func (app *App) postNewTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
+	taskIdStr := r.PathValue("id")
+	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
@@ -113,7 +131,13 @@ func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = editing(app.db, &input, id)
+	userId, ok := userIDFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
+		return
+	}
+
+	err = editing(app.db, &input, taskId, userId)
 	if errors.Is(err, ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Task not found", "")
 		return
@@ -124,7 +148,7 @@ func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedTask, err := finding(app.db, id)
+	updatedTask, err := finding(app.db, taskId, userId)
 	if err != nil {
 		log.Println(err)
 		writeError(w, http.StatusInternalServerError, "Internal error", "")
@@ -136,14 +160,20 @@ func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) deleteTaskById(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
+	taskIdStr := r.PathValue("id")
+	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
 	}
 
-	err = deleting(app.db, id)
+	userId, ok := userIDFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
+		return
+	}
+
+	err = deleting(app.db, taskId, userId)
 	if errors.Is(err, ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Task not found", "")
 		return

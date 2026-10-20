@@ -25,17 +25,22 @@ type ctxKey string
 
 const userIDKey ctxKey = "userID"
 
+func userIDFromRequest(r *http.Request) (int, bool) {
+	id, ok := r.Context().Value(userIDKey).(int)
+	return id, ok
+}
+
 func (app *App) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenStr, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || tokenStr == "" {
-			writeError(w, http.StatusUnauthorized, "missing or malformed token", "")
+			writeError(w, http.StatusUnauthorized, "Missing or malformed token", "")
 			return
 		}
 
 		userID, err := parseToken(tokenStr, app.jwtSecret)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "invalid or expired token", "")
+			writeError(w, http.StatusUnauthorized, "Invalid or expired token", "")
 			return
 		}
 
@@ -47,14 +52,14 @@ func (app *App) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 func parseToken(tokenStr string, secret []byte) (int, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{},
 		func(t *jwt.Token) (any, error) { return secret, nil },
-		jwt.WithValidMethods([]string{"HS256"}), // принимаем только свой алгоритм
+		jwt.WithValidMethods([]string{"HS256"}),
 	)
 	if err != nil {
 		return 0, err
 	}
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok || !token.Valid {
-		return 0, errors.New("invalid token")
+		return 0, errors.New("Invalid token")
 	}
 	return strconv.Atoi(claims.Subject)
 }

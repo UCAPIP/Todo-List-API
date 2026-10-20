@@ -44,8 +44,8 @@ func main() {
 	http.HandleFunc("POST /register", app.userRegister)
 	http.HandleFunc("POST /login", app.userLogin)
 
-	http.HandleFunc("GET /tasks", app.getTasks)
-	http.HandleFunc("GET /tasks/{id}", app.getTaskById)
+	http.HandleFunc("GET /tasks", app.requireAuth(app.getTasks))
+	http.HandleFunc("GET /tasks/{id}", app.requireAuth(app.getTaskById))
 	http.HandleFunc("POST /tasks", app.requireAuth(app.postNewTask))
 	http.HandleFunc("DELETE /tasks/{id}", app.requireAuth(app.deleteTaskById))
 	http.HandleFunc("PUT /tasks/{id}", app.requireAuth(app.updateTaskById))
