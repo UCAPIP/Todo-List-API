@@ -198,3 +198,42 @@ func (app *App) userRegister(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, map[string]any{"id": id, "username": c.Name, "email": c.Email})
 }
+
+func (app *App) userLogin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var c Credentials
+	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid JSON body", "")
+		return
+	}
+
+	c.Email = strings.TrimSpace(c.Email)
+	if c.Email == "" || len(c.Password) == 0 {
+		writeError(w, http.StatusBadRequest, "Validation failed",
+			"Eame is required; password is required")
+		return
+	}
+
+	user, err := findUserByUsername(app.db, c.Email)
+	if err == nil {
+		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(c.Password))
+	}
+	if err != nil {
+		if errors.Is(err, ErrNotFound) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			writeError(w, http.StatusUnauthorized, "Invalid credentials", "")
+			return
+		}
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "Internal error", "")
+		return
+	}
+
+	token, err := makeToken(user.Id, app.jwtSecret)
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "internal error", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"token": token})
+}

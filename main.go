@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/joho/godotenv"
 	_ "modernc.org/sqlite"
 )
 
@@ -30,6 +31,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env not found, using system environment variables")
+	}
+
 	secret := os.Getenv("JWT_SECRET")
 	if len(secret) < 32 {
 		log.Fatal("JWT_SECRET must be set and at least 32 characters long")
@@ -37,12 +42,13 @@ func main() {
 	app := &App{db: db, jwtSecret: []byte(secret)}
 
 	http.HandleFunc("POST /register", app.userRegister)
+	http.HandleFunc("POST /login", app.userLogin)
 
 	http.HandleFunc("GET /tasks", app.getTasks)
 	http.HandleFunc("GET /tasks/{id}", app.getTaskById)
-	http.HandleFunc("POST /tasks", app.postNewTask)
-	http.HandleFunc("DELETE /tasks/{id}", app.deleteTaskById)
-	http.HandleFunc("PUT /tasks/{id}", app.updateTaskById)
+	http.HandleFunc("POST /tasks", app.requireAuth(app.postNewTask))
+	http.HandleFunc("DELETE /tasks/{id}", app.requireAuth(app.deleteTaskById))
+	http.HandleFunc("PUT /tasks/{id}", app.requireAuth(app.updateTaskById))
 
 	log.Println("The server is running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

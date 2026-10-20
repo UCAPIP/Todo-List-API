@@ -39,6 +39,13 @@ type Task struct {
 	UpdatedAt   string `json:"updatedAt"`
 }
 
+type User struct {
+	Id           int    `json:"id"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"password"`
+}
+
 func loading(db *sql.DB) ([]Task, error) {
 
 	tasks := []Task{}
@@ -162,4 +169,21 @@ func createUser(db *sql.DB, name, email, passHash string) (int64, error) {
 
 	log.Println(id, "User was registrated succesfuly")
 	return id, nil
+}
+
+func findUserByUsername(db *sql.DB, email string) (*User, error) {
+	var targetUser = User{}
+
+	err := db.QueryRow(
+		"SELECT id, name, email, password FROM Users WHERE email = ?",
+		email,
+	).Scan(&targetUser.Id, &targetUser.Name, &targetUser.Email, &targetUser.PasswordHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &targetUser, nil
 }
