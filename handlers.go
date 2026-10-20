@@ -183,6 +183,8 @@ func (app *App) deleteTaskById(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal error", "")
 		return
 	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type Credentials struct {
