@@ -10,6 +10,7 @@ import (
 var (
 	ErrNotFound   = errors.New("Post not found")
 	ErrUserExists = errors.New("Name or email already taken")
+	ErrForbidden  = errors.New("Forbidden")
 )
 
 type ErrorResponse struct {

@@ -48,13 +48,13 @@ type User struct {
 	PasswordHash string `json:"password"`
 }
 
-func loading(db *sql.DB, userId int) ([]Task, error) {
+func loading(db *sql.DB, userId, limit, offset int) ([]Task, error) {
 
 	tasks := []Task{}
 
-	query := "SELECT id, title, description, created_at, updated_at, user_id FROM Tasks WHERE user_id = ? ORDER BY id"
+	query := "SELECT id, title, description, created_at, updated_at, user_id FROM Tasks WHERE user_id = ? ORDER BY id LIMIT ? OFFSET ?"
 
-	rows, err := db.Query(query, userId)
+	rows, err := db.Query(query, userId, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -188,4 +188,13 @@ func findUserByUsername(db *sql.DB, email string) (*User, error) {
 	}
 
 	return &targetUser, nil
+}
+
+func taskOwner(db *sql.DB, taskID int) (int, error) {
+	var owner int
+	err := db.QueryRow("SELECT user_id FROM Tasks WHERE id = ?", taskID).Scan(&owner)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	return owner, err
 }

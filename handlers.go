@@ -18,7 +18,19 @@ func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks, err := loading(app.db, userId)
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+
+	tasks, err := loading(app.db, userId, limit, offset)
 	if err != nil {
 		log.Printf("ERROR: Unable to load tasks from DB: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error", "Unable to load data.")
@@ -137,6 +149,21 @@ func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	owner, err := taskOwner(app.db, taskId)
+	if errors.Is(err, ErrNotFound) {
+		writeError(w, http.StatusNotFound, "Task not found", "")
+		return
+	}
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "Internal error", "")
+		return
+	}
+	if owner != userId {
+		writeError(w, http.StatusForbidden, "Forbidden", "")
+		return
+	}
+
 	err = editing(app.db, &input, taskId, userId)
 	if errors.Is(err, ErrNotFound) {
 		writeError(w, http.StatusNotFound, "Task not found", "")
@@ -170,6 +197,21 @@ func (app *App) deleteTaskById(w http.ResponseWriter, r *http.Request) {
 	userId, ok := userIDFromRequest(r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
+		return
+	}
+
+	owner, err := taskOwner(app.db, taskId)
+	if errors.Is(err, ErrNotFound) {
+		writeError(w, http.StatusNotFound, "Task not found", "")
+		return
+	}
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "Internal error", "")
+		return
+	}
+	if owner != userId {
+		writeError(w, http.StatusForbidden, "Forbidden", "")
 		return
 	}
 
@@ -228,7 +270,14 @@ func (app *App) userRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]any{"id": id, "username": c.Name, "email": c.Email})
+	token, err := makeToken(int(id), app.jwtSecret)
+	if err != nil {
+		log.Println(err)
+		writeError(w, http.StatusInternalServerError, "Internal error", "")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]string{"token": token})
 }
 
 func (app *App) userLogin(w http.ResponseWriter, r *http.Request) {
