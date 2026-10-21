@@ -30,7 +30,7 @@ func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
 
 	offset := (page - 1) * limit
 
-	tasks, err := loading(app.db, userId, limit, offset)
+	tasks, err := loading(app.db, userId, page, limit, offset)
 	if err != nil {
 		log.Printf("ERROR: Unable to load tasks from DB: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error", "Unable to load data.")

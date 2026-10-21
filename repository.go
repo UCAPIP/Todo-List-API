@@ -48,15 +48,22 @@ type User struct {
 	PasswordHash string `json:"password"`
 }
 
-func loading(db *sql.DB, userId, limit, offset int) ([]Task, error) {
+type TaskPage struct {
+	Data  []Task `json:"data"`
+	Page  int    `json:"page"`
+	Limit int    `json:"limit"`
+	Total int    `json:"total"`
+}
 
-	tasks := []Task{}
+func loading(db *sql.DB, userId, page, limit, offset int) (TaskPage, error) {
+
+	tasks := TaskPage{Data: []Task{}, Page: page, Limit: limit, Total: offset}
 
 	query := "SELECT id, title, description, created_at, updated_at, user_id FROM Tasks WHERE user_id = ? ORDER BY id LIMIT ? OFFSET ?"
 
 	rows, err := db.Query(query, userId, limit, offset)
 	if err != nil {
-		return nil, err
+		return tasks, err
 	}
 	defer rows.Close()
 
@@ -65,7 +72,8 @@ func loading(db *sql.DB, userId, limit, offset int) ([]Task, error) {
 		if err := rows.Scan(&t.Id, &t.Title, &t.Description, &t.CreatedAt, &t.UpdatedAt, &t.UserId); err != nil {
 			return tasks, err
 		}
-		tasks = append(tasks, t)
+
+		tasks.Data = append(tasks.Data, t)
 	}
 
 	if err := rows.Err(); err != nil {
