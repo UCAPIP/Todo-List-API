@@ -27,9 +27,13 @@ CREATE TABLE IF NOT EXISTS Users (
 );`
 
 func initDB(db *sql.DB) error {
-	_, err := db.Exec(schemaTasks)
-	_, err = db.Exec(schemaUsers)
-	return err
+	if _, err := db.Exec(schemaUsers); err != nil {
+		return err
+	}
+	if _, err := db.Exec(schemaTasks); err != nil {
+		return err
+	}
+	return nil
 }
 
 type Task struct {
