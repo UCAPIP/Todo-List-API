@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -25,12 +24,9 @@ type ctxKey string
 
 const userIDKey ctxKey = "userID"
 
-func userIDFromRequest(r *http.Request) (int, bool) {
-	id, ok := r.Context().Value(userIDKey).(int)
-	return id, ok
-}
+type authedHandler func(w http.ResponseWriter, r *http.Request, userID int)
 
-func (app *App) requireAuth(next http.HandlerFunc) http.HandlerFunc {
+func (app *App) requireAuth(next authedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenStr, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || tokenStr == "" {
@@ -44,8 +40,7 @@ func (app *App) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
-		next(w, r.WithContext(ctx))
+		next(w, r, userID)
 	}
 }
 

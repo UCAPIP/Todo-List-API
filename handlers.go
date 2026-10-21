@@ -11,12 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
-	userId, ok := userIDFromRequest(r)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
-		return
-	}
+func (app *App) getTasks(w http.ResponseWriter, r *http.Request, userId int) {
 
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
@@ -40,16 +35,10 @@ func (app *App) getTasks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, tasks)
 }
 
-func (app *App) getTaskById(w http.ResponseWriter, r *http.Request) {
+func (app *App) getTaskById(w http.ResponseWriter, r *http.Request, userId int) {
 	taskIdStr := r.PathValue("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
-		return
-	}
-
-	userId, ok := userIDFromRequest(r)
-	if !ok {
 		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
 	}
@@ -85,7 +74,7 @@ func validate(input *TaskInput) []string {
 	return problems
 }
 
-func (app *App) postNewTask(w http.ResponseWriter, r *http.Request) {
+func (app *App) postNewTask(w http.ResponseWriter, r *http.Request, userId int) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var input TaskInput
@@ -97,12 +86,6 @@ func (app *App) postNewTask(w http.ResponseWriter, r *http.Request) {
 
 	if problems := validate(&input); len(problems) > 0 {
 		writeError(w, http.StatusBadRequest, "Validation failed", strings.Join(problems, "; "))
-		return
-	}
-
-	userId, ok := userIDFromRequest(r)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
 	}
 
@@ -123,7 +106,7 @@ func (app *App) postNewTask(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, newTask)
 }
 
-func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
+func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request, userId int) {
 	taskIdStr := r.PathValue("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
@@ -140,12 +123,6 @@ func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
 
 	if problems := validate(&input); len(problems) > 0 {
 		writeError(w, http.StatusBadRequest, "Validation failed", strings.Join(problems, "; "))
-		return
-	}
-
-	userId, ok := userIDFromRequest(r)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
 	}
 
@@ -186,16 +163,10 @@ func (app *App) updateTaskById(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *App) deleteTaskById(w http.ResponseWriter, r *http.Request) {
+func (app *App) deleteTaskById(w http.ResponseWriter, r *http.Request, userId int) {
 	taskIdStr := r.PathValue("id")
 	taskId, err := strconv.Atoi(taskIdStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
-		return
-	}
-
-	userId, ok := userIDFromRequest(r)
-	if !ok {
 		writeError(w, http.StatusBadRequest, "Bad Request", "The 'id' parameter must be a valid integer number.")
 		return
 	}
