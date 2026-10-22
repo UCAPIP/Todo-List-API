@@ -45,7 +45,7 @@ A RESTful API for a personal to-do list, written in Go. Users can register, log 
 **1. Clone the repository and install dependencies**
 
 ```bash
-git clone https://github.com/UCAPIP/Blogging-Platform-API
+git clone [https://github.com/UCAPIP/Blogging-Platform-API](https://github.com/UCAPIP/Todo-List-API)
 cd <your-repo-folder>
 go mod tidy
 ```
@@ -388,7 +388,7 @@ REST API для личного списка дел на Go. Пользовате
 **1. Склонируй репозиторий и подтяни зависимости**
 
 ```bash
-git clone <ссылка-на-репозиторий>
+git clone [<ссылка-на-репозиторий>](https://github.com/UCAPIP/Todo-List-API)
 cd <папка-репозитория>
 go mod tidy
 ```
