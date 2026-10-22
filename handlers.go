@@ -12,15 +12,21 @@ import (
 )
 
 func (app *App) getTasks(w http.ResponseWriter, r *http.Request, userId int) {
+	q := r.URL.Query()
 
-	page, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil || page < 1 {
-		page = 1
+	page, err := intParam(q.Get("page"), 1)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Bad Request", "page must be a positive integer")
+		return
 	}
 
-	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
-	if err != nil || limit < 1 || limit > 100 {
-		limit = 10
+	limit, err := intParam(q.Get("limit"), 10)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Bad Request", "limit must be a positive integer")
+		return
+	}
+	if limit > 100 {
+		limit = 100
 	}
 
 	offset := (page - 1) * limit

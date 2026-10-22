@@ -196,19 +196,19 @@ Section "8. Pagination (A has 5 tasks now)"
     $null = Call POST "/$Resource" @{ title = "Task $_"; description = "Description $_" } $tokenA
 }
 
-$r = Call GET "/$Resource?page=1&limit=2" $null $tokenA
+$r = Call GET "/${Resource}?page=1&limit=2" $null $tokenA
 Check "Page 1, limit 2" $r 200
 $j = ToObj $r
 Assert "Page 1 has 2 items" ((Cnt $j.data) -eq 2) $r.Body
 Assert "Response has page=1, limit=2, total=5" (($j.page -eq 1) -and ($j.limit -eq 2) -and ($j.total -eq 5)) $r.Body
 
-$r = Call GET "/$Resource?page=3&limit=2" $null $tokenA
+$r = Call GET "/${Resource}?page=3&limit=2" $null $tokenA
 Check "Page 3, limit 2" $r 200
 $j = ToObj $r
 Assert "Last page has the 1 remaining item" ((Cnt $j.data) -eq 1) $r.Body
 Assert "Total is still 5" ($j.total -eq 5) $r.Body
 
-$r = Call GET "/$Resource?page=4&limit=2" $null $tokenA
+$r = Call GET "/${Resource}?page=4&limit=2" $null $tokenA
 Check "Page beyond the end" $r 200
 Assert "Page beyond the end is empty" ((Cnt (ToObj $r).data) -eq 0) $r.Body
 
@@ -220,12 +220,12 @@ Assert "Defaults are page=1, limit=10" (($j.page -eq 1) -and ($j.limit -eq 10)) 
 $r = Call GET "/$Resource" $null $tokenB
 Assert "B's total is 0 (counts only own tasks)" ((ToObj $r).total -eq 0) $r.Body
 
-Check "page=0 is rejected" (Call GET "/$Resource?page=0" $null $tokenA) 400
-Check "page=abc is rejected" (Call GET "/$Resource?page=abc" $null $tokenA) 400
-Check "limit=abc is rejected" (Call GET "/$Resource?limit=abc" $null $tokenA) 400
-Check "limit=0 is rejected" (Call GET "/$Resource?limit=0" $null $tokenA) 400
+Check "page=0 is rejected" (Call GET "/${Resource}?page=0" $null $tokenA) 400
+Check "page=abc is rejected" (Call GET "/${Resource}?page=abc" $null $tokenA) 400
+Check "limit=abc is rejected" (Call GET "/${Resource}?limit=abc" $null $tokenA) 400
+Check "limit=0 is rejected" (Call GET "/${Resource}?limit=0" $null $tokenA) 400
 
-$r = Call GET "/$Resource?page=1&limit=1000" $null $tokenA
+$r = Call GET "/${Resource}?page=1&limit=1000" $null $tokenA
 if ($r.Code -eq 200) {
     Write-Host ("[INFO] limit=1000 was accepted and capped to limit={0}" -f (ToObj $r).limit) -ForegroundColor Yellow
 } else {

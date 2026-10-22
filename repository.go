@@ -61,27 +61,33 @@ type TaskPage struct {
 
 func loading(db *sql.DB, userId, page, limit, offset int) (TaskPage, error) {
 
-	tasks := TaskPage{Data: []Task{}, Page: page, Limit: limit, Total: offset}
+	var total int
+	err := db.QueryRow("SELECT COUNT(*) FROM Tasks WHERE user_id = ?", userId).Scan(&total)
+	if err != nil {
+		return TaskPage{}, err
+	}
+
+	tasks := TaskPage{Data: []Task{}, Page: page, Limit: limit, Total: total}
 
 	query := "SELECT id, title, description, created_at, updated_at, user_id FROM Tasks WHERE user_id = ? ORDER BY id LIMIT ? OFFSET ?"
 
 	rows, err := db.Query(query, userId, limit, offset)
 	if err != nil {
-		return tasks, err
+		return TaskPage{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var t Task
 		if err := rows.Scan(&t.Id, &t.Title, &t.Description, &t.CreatedAt, &t.UpdatedAt, &t.UserId); err != nil {
-			return tasks, err
+			return TaskPage{}, err
 		}
 
 		tasks.Data = append(tasks.Data, t)
 	}
 
 	if err := rows.Err(); err != nil {
-		return tasks, err
+		return TaskPage{}, err
 	}
 
 	return tasks, nil

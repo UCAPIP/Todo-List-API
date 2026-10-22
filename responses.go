@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 var (
@@ -28,4 +29,15 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, msg, details string) {
 	writeJSON(w, status, ErrorResponse{Error: msg, Details: details})
+}
+
+func intParam(s string, def int) (int, error) {
+	if s == "" {
+		return def, nil
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 1 {
+		return 0, errors.New("must be a positive integer")
+	}
+	return n, nil
 }
