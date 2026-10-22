@@ -37,7 +37,7 @@ func intParam(s string, def int) (int, error) {
 	}
 	n, err := strconv.Atoi(s)
 	if err != nil || n < 1 {
-		return 0, errors.New("must be a positive integer")
+		return 0, errors.New("Must be a positive integer")
 	}
 	return n, nil
 }
